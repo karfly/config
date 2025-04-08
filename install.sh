@@ -11,8 +11,25 @@
 # CONFIGURATION
 # -----------------------------------------------------
 
-# Ask for hostname
-read -p "Enter hostname for terminal prompt: " hostname
+# Check if script is being run non-interactively (e.g., piped through wget)
+hostname=""
+
+# First check if a hostname was provided as argument
+if [ "$1" != "" ]; then
+    hostname="$1"
+fi
+
+# If no hostname provided as argument, try to ask interactively
+if [ -z "$hostname" ]; then
+    # Check if we're in an interactive terminal
+    if [ -t 0 ]; then
+        read -p "Enter hostname for terminal prompt: " hostname
+    else
+        # If non-interactive and no argument, use the system's hostname
+        hostname=$(hostname)
+        echo "Non-interactive mode detected. Using system hostname: $hostname"
+    fi
+fi
 
 echo "Installing configuration files with hostname: $hostname"
 
