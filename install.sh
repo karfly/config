@@ -11,24 +11,45 @@
 # CONFIGURATION
 # -----------------------------------------------------
 
-# Check if script is being run non-interactively (e.g., piped through wget)
 hostname=""
 
-# First check if a hostname was provided as argument
-if [ "$1" != "" ]; then
+# Check if a hostname was provided as the first argument
+if [ -n "$1" ]; then
     hostname="$1"
+    echo "Using hostname provided as argument: $hostname"
+else
+    # No argument provided, check if interactive
+    if [ -t 0 ]; then
+        # Interactive: Prompt the user
+        read -p "Enter hostname for terminal prompt: " hostname
+        # Check if user actually entered something
+        if [ -z "$hostname" ]; then
+            echo "No hostname entered. Exiting."
+            exit 1
+        fi
+    else
+        # Non-interactive: Try to get system hostname
+        echo "Non-interactive mode detected. Trying to determine system hostname..."
+        sys_hostname=$(hostname 2>/dev/null) # Try hostname command, suppress errors
+        if [ -n "$sys_hostname" ]; then
+            hostname="$sys_hostname"
+            echo "Using system hostname via 'hostname' command: $hostname"
+        elif [ -f /etc/hostname ]; then
+            # Fallback: Read from /etc/hostname
+            hostname=$(cat /etc/hostname)
+            echo "Using system hostname from /etc/hostname: $hostname"
+        else
+            # Last resort: Use a default
+            hostname="default-host"
+            echo "Could not determine system hostname. Using default: $hostname"
+        fi
+    fi
 fi
 
-# If no hostname provided as argument, try to ask interactively
+# Ensure hostname is not empty before proceeding
 if [ -z "$hostname" ]; then
-    # Check if we're in an interactive terminal
-    if [ -t 0 ]; then
-        read -p "Enter hostname for terminal prompt: " hostname
-    else
-        # If non-interactive and no argument, use the system's hostname
-        hostname=$(hostname)
-        echo "Non-interactive mode detected. Using system hostname: $hostname"
-    fi
+    echo "Error: Hostname could not be determined. Exiting."
+    exit 1
 fi
 
 echo "Installing configuration files with hostname: $hostname"
